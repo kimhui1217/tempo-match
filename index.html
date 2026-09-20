@@ -180,7 +180,7 @@
   .add-phase-btn:hover { color: var(--text); border-color: var(--accent-dim); }
 
   .interval-controls { display: flex; gap: 10px; }
-  .interval-start-btn, .interval-stop-btn {
+  .interval-start-btn, .interval-pause-btn, .interval-stop-btn {
     flex: 1;
     padding: 11px;
     border-radius: var(--radius-sm);
@@ -191,6 +191,8 @@
   }
   .interval-start-btn { background: var(--accent); color: #1b1f2c; }
   .interval-start-btn:hover { background: #f0c563; }
+  .interval-pause-btn { background: var(--surface-2); color: var(--accent-2); border: 1px solid var(--border); }
+  .interval-pause-btn:hover { border-color: var(--accent-2); }
   .interval-stop-btn { background: var(--surface-2); color: var(--danger); border: 1px solid var(--border); }
   .interval-stop-btn:hover { border-color: var(--danger); }
 
@@ -672,6 +674,7 @@
 
     <div class="interval-controls">
       <button class="interval-start-btn" id="startProgramBtn">▶ 프로그램 시작</button>
+      <button class="interval-pause-btn" id="pauseProgramBtn" style="display:none;">⏸ 일시정지</button>
       <button class="interval-stop-btn" id="stopProgramBtn" style="display:none;">⏹ 중지</button>
     </div>
 
@@ -1054,6 +1057,7 @@
   const phaseListEl = document.getElementById('phaseList');
   const addPhaseBtn = document.getElementById('addPhaseBtn');
   const startProgramBtn = document.getElementById('startProgramBtn');
+  const pauseProgramBtn = document.getElementById('pauseProgramBtn');
   const stopProgramBtn = document.getElementById('stopProgramBtn');
   const intervalStatusEl = document.getElementById('intervalStatus');
   const statusPhaseLabelEl = document.getElementById('statusPhaseLabel');
@@ -1071,6 +1075,7 @@
   let phases = [];
   let phaseIdCounter = 0;
   let programState = null; // {phaseIndex, phaseElapsedSec, timerId}
+  let programPaused = false;
   let rampAnimFrame = null;
 
   function addPhase(presetKey, overrides) {
@@ -1203,22 +1208,77 @@
     intervalProgressFillEl.style.width = pct + '%';
   }
 
+  function stopCurrentAudio() {
+    const track = getCurrentTrack();
+    if (track) {
+      track.audio.pause();
+      track.audio.currentTime = 0;
+    }
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+  }
+
+  function startProgramPlayback() {
+    if (tracks.length === 0) return; // 곡이 없어도 템포 프로그램 자체는 진행됨
+    if (playSequence.length === 0) rebuildSequence(false);
+    const track = getCurrentTrack();
+    if (track) {
+      applyRate(track);
+      track.audio.play();
+    } else {
+      playById(playSequence[0]);
+    }
+  }
+
   function startProgram() {
     if (phases.length === 0) return;
     if (programState) stopProgram(false);
     programState = { phaseIndex: -1, phaseElapsedSec: 0, timerId: null };
+    programPaused = false;
     startProgramBtn.style.display = 'none';
+    pauseProgramBtn.style.display = 'inline-flex';
+    pauseProgramBtn.textContent = '⏸ 일시정지';
     stopProgramBtn.style.display = 'inline-flex';
     intervalStatusEl.style.display = 'block';
     autoBadge.classList.add('active');
     enterPhase(0);
+    startProgramPlayback();
     programState.timerId = setInterval(programTick, 1000);
+  }
+
+  function pauseProgram() {
+    if (!programState) return;
+    if (!programPaused) {
+      // 일시정지: 타이머 멈추고, 진행 중인 템포 램프도 그 값에서 멈춤, 음악은 일시정지(위치 유지)
+      if (programState.timerId) clearInterval(programState.timerId);
+      programState.timerId = null;
+      if (rampAnimFrame) { cancelAnimationFrame(rampAnimFrame); rampAnimFrame = null; }
+      const track = getCurrentTrack();
+      if (track) track.audio.pause();
+      programPaused = true;
+      pauseProgramBtn.textContent = '▶ 재개';
+    } else {
+      // 재개: 같은 위치에서 음악 이어서 재생, 타이머 다시 시작
+      const track = getCurrentTrack();
+      if (track) {
+        applyRate(track);
+        track.audio.play();
+      } else {
+        startProgramPlayback();
+      }
+      programState.timerId = setInterval(programTick, 1000);
+      programPaused = false;
+      pauseProgramBtn.textContent = '⏸ 일시정지';
+    }
   }
 
   function stopProgram(completed) {
     if (programState && programState.timerId) clearInterval(programState.timerId);
     programState = null;
+    programPaused = false;
+    stopCurrentAudio();
     startProgramBtn.style.display = 'inline-flex';
+    pauseProgramBtn.style.display = 'none';
+    pauseProgramBtn.textContent = '⏸ 일시정지';
     stopProgramBtn.style.display = 'none';
     autoBadge.classList.remove('active');
     if (completed) {
@@ -1228,9 +1288,11 @@
     } else {
       intervalStatusEl.style.display = 'none';
     }
+    render();
   }
 
   startProgramBtn.addEventListener('click', startProgram);
+  pauseProgramBtn.addEventListener('click', pauseProgram);
   stopProgramBtn.addEventListener('click', () => stopProgram(false));
 
   // ---------- 저장된 프로그램 슬롯 (최대 3개, 이 브라우저에만 저장돼요) ----------
@@ -1614,16 +1676,12 @@
   }
 
   function stopPlayback() {
-    const track = getCurrentTrack();
-    if (track) {
-      track.audio.pause();
-      track.audio.currentTime = 0;
-    }
     if (programState) {
-      stopProgram(false); // 음악을 멈추면 인터벌 프로그램도 함께 중단
+      stopProgram(false); // 음악을 멈추면 인터벌 프로그램도 함께 중단 (내부에서 음원도 정지됨)
+    } else {
+      stopCurrentAudio();
+      render();
     }
-    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-    render();
   }
 
   function goNext(manual) {
