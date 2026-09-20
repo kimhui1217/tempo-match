@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>템포 매치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12141c;
+    --surface: #1b1f2c;
+    --surface-2: #232838;
+    --border: #2e3446;
+    --text: #edeef2;
+    --muted: #8b93a7;
+    --accent: #e8b944;
+    --accent-dim: #7a6423;
+    --accent-2: #4fd1c5;
+    --danger: #e0645a;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  header.top h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  header.top p {
+    margin: 4px 0 0;
+    font-size: 16px;
+    color: var(--muted);
+  }
+
+  /* 달리기 속도 추천 패널 */
+  /* 인터벌 프로그램 패널 */
+  .interval-panel {
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .interval-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .interval-sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .phase-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .slot-panel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .slot-panel-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .slot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slot-name {
+    width: 18px;
+    font-size: 13px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .slot-summary {
+    flex: 1;
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slot-action {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .slot-action:hover { border-color: var(--accent-dim); }
+  .slot-action-save { color: var(--accent-2); }
+  .phase-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+  }
+  .phase-row select,
+  .phase-row input[type="number"],
+  .phase-row input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 6px 7px;
+    font-size: 14px;
+  }
+  .phase-preset { width: 88px; }
+  .phase-custom-label { width: 82px; }
+  .phase-duration { width: 54px; text-align: center; }
+  .phase-speed { width: 62px; text-align: center; }
+  .phase-row .unit-label { font-size: 13px; color: var(--muted); }
+  .phase-remove {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 2px 4px;
+  }
+  .phase-remove:hover { color: var(--danger); }
+
+  .add-phase-btn {
+    width: 100%;
+    padding: 9px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .add-phase-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+
+  .interval-controls { display: flex; gap: 10px; }
+  .interval-start-btn, .interval-stop-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .interval-start-btn { background: var(--accent); color: #1b1f2c; }
+  .interval-start-btn:hover { background: #f0c563; }
+  .interval-stop-btn { background: var(--surface-2); color: var(--danger); border: 1px solid var(--border); }
+  .interval-stop-btn:hover { border-color: var(--danger); }
+
+  .interval-status { margin-top: 14px; }
+  .interval-status-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  #statusPhaseLabel { color: var(--text); }
+  #statusTimeLeft { color: var(--accent-2); font-size: 18px; }
+  .interval-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .interval-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    width: 0%;
+    transition: width 0.9s linear;
+  }
+
+  .pace-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .pace-panel-title {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .pace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pace-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pace-field label {
+    font-size: 16px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .pace-field input[type="number"] {
+    width: 84px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 7px 8px;
+    font-size: 17px;
+    text-align: center;
+  }
+  .pace-arrow { color: var(--muted); font-size: 17px; }
+  .pace-result {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 17px;
+    color: var(--accent-2);
+  }
+  .pace-result .mono { font-size: 19px; font-weight: 600; }
+  .pace-note {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .personal-toggle {
+    font-size: 14px;
+    color: var(--accent-2);
+    cursor: pointer;
+    margin-top: 14px;
+    user-select: none;
+  }
+  .personal-toggle:hover { color: var(--text); }
+
+  .personal-panel {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .personal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .personal-row label {
+    font-size: 16px;
+    color: var(--muted);
+    min-width: 40px;
+  }
+  .personal-row input[type="number"],
+  .personal-row select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 6px 8px;
+    font-size: 16px;
+  }
+  .personal-row input[type="number"] { width: 84px; text-align: center; }
+  .personal-row input[type="number"]:disabled { opacity: 0.4; }
+  .unit-label { font-size: 14px; color: var(--muted); }
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    color: var(--muted);
+    min-width: unset;
+    margin-left: 6px;
+    cursor: pointer;
+  }
+  .checkbox-label input { accent-color: var(--accent-2); }
+  .skill-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+  }
+
+  /* 목표 BPM — 콤팩트 상태 표시줄 */
+  .status-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .status-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-right: 2px;
+  }
+  .status-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .status-btn:hover { background: #2a3040; }
+  .status-btn:active { transform: scale(0.92); }
+  .status-value {
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--accent);
+    width: 72px;
+    line-height: 1;
+    background: transparent;
+    border: none;
+    text-align: center;
+    outline: none;
+  }
+  .status-value::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .status-unit {
+    font-size: 13px;
+    color: var(--muted);
+    margin-right: 2px;
+  }
+  .status-auto-badge {
+    display: none;
+    font-size: 13px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--accent-2);
+    white-space: nowrap;
+  }
+  .status-auto-badge.active { display: inline-block; }
+
+
+  .metronome-toggle {
+    margin-top: 16px;
+    padding: 9px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .metronome-toggle.compact {
+    margin-top: 0;
+    margin-left: auto;
+    padding: 6px 14px;
+    font-size: 14px;
+  }
+  .metronome-toggle:hover { color: var(--text); }
+  .metronome-toggle.active {
+    background: var(--accent-2);
+    color: #12141c;
+    border-color: var(--accent-2);
+  }
+
+  /* 업로드 */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 18px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .upload-zone:hover { border-color: var(--accent-dim); color: var(--text); }
+  .upload-zone input { display: none; }
+
+  /* 전역 재생 컨트롤 바 */
+  .player-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .player-track-name {
+    font-size: 16px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
+  .player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ctrl-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 17px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .ctrl-btn:hover { background: #2a3040; }
+  .ctrl-btn:active { transform: scale(0.94); }
+  .ctrl-btn-main {
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
+    background: var(--accent);
+    color: #1b1f2c;
+    border-color: var(--accent);
+  }
+  .ctrl-btn-main:hover { background: #f0c563; }
+  .ctrl-btn.ctrl-active {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+  }
+
+  /* 트랙 리스트 */
+  .track-list { display: flex; flex-direction: column; gap: 10px; }
+  .track {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s;
+  }
+  .track.playing { border-color: var(--accent-dim); background: #201c14; }
+
+  .track-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .track-play {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .track-play:disabled { opacity: 0.4; cursor: not-allowed; }
+  .track.playing .track-play { background: var(--accent); color: #1b1f2c; border-color: var(--accent); }
+  .track-name {
+    flex: 1;
+    font-size: 17px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .track-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 19px;
+    padding: 4px;
+    line-height: 1;
+  }
+  .track-remove:hover { color: var(--danger); }
+
+  .track-bottom {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-left: 50px;
+    flex-wrap: wrap;
+  }
+  .bpm-status {
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spinner {
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-2);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .field input[type="number"] {
+    width: 64px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 4px 6px;
+    font-size: 16px;
+    text-align: center;
+  }
+  .rate-badge {
+    margin-left: auto;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--surface-2);
+    color: var(--accent-2);
+    white-space: nowrap;
+  }
+
+  .progress-wrap {
+    padding-left: 50px;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 30px 10px;
+  }
+
+  .hint {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 22px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>템포 매치</h1>
+      <p>목표 BPM에 맞춰 리스트의 모든 곡을 같은 속도로 재생</p>
+    </div>
+  </header>
+
+  <div class="interval-panel" id="intervalPanel">
+    <div class="interval-title">인터벌 프로그램</div>
+    <div class="interval-sub">구간별로 속도를 설정하면, 시간에 맞춰 템포가 자동으로 부드럽게 전환돼요 — 시계 안 봐도 돼요.</div>
+
+    <div class="slot-panel">
+      <div class="slot-panel-label">저장된 프로그램</div>
+      <div class="slot-row" data-slot="1">
+        <span class="slot-name mono">1</span>
+        <span class="slot-summary" id="slotSummary1">비어있음</span>
+        <button class="slot-action" data-slot="1" data-action="load">불러오기</button>
+        <button class="slot-action slot-action-save" data-slot="1" data-action="save">저장</button>
+      </div>
+      <div class="slot-row" data-slot="2">
+        <span class="slot-name mono">2</span>
+        <span class="slot-summary" id="slotSummary2">비어있음</span>
+        <button class="slot-action" data-slot="2" data-action="load">불러오기</button>
+        <button class="slot-action slot-action-save" data-slot="2" data-action="save">저장</button>
+      </div>
+      <div class="slot-row" data-slot="3">
+        <span class="slot-name mono">3</span>
+        <span class="slot-summary" id="slotSummary3">비어있음</span>
+        <button class="slot-action" data-slot="3" data-action="load">불러오기</button>
+        <button class="slot-action slot-action-save" data-slot="3" data-action="save">저장</button>
+      </div>
+    </div>
+
+    <div class="phase-list" id="phaseList"></div>
+
+    <button class="add-phase-btn" id="addPhaseBtn">+ 구간 추가</button>
+
+    <div class="interval-controls">
+      <button class="interval-start-btn" id="startProgramBtn">▶ 프로그램 시작</button>
+      <button class="interval-stop-btn" id="stopProgramBtn" style="display:none;">⏹ 중지</button>
+    </div>
+
+    <div class="interval-status" id="intervalStatus" style="display:none;">
+      <div class="interval-status-row">
+        <span class="mono" id="statusPhaseLabel">—</span>
+        <span class="mono" id="statusTimeLeft">00:00</span>
+      </div>
+      <div class="interval-progress-bar">
+        <div class="interval-progress-fill" id="intervalProgressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pace-panel">
+    <div class="pace-panel-title">달리기 속도로 BPM 추천받기</div>
+    <div class="pace-row">
+      <div class="pace-field">
+        <label>속도</label>
+        <input type="number" id="paceSpeed" class="mono" step="0.1" min="1" max="25" placeholder="5.0">
+        <span style="font-size:16px;color:var(--muted);">km/h</span>
+      </div>
+      <span class="pace-arrow">→</span>
+      <div class="pace-result">
+        추천 <span class="mono" id="paceResult">—</span> BPM
+      </div>
+    </div>
+    <div class="pace-note">일반적인 러닝 케이던스 가이드 기준 추정치예요. 아래 목표 BPM에 자동 반영되며, 직접 조정할 수 있어요.</div>
+
+    <div class="personal-toggle" id="personalToggle">개인 설정으로 더 정확하게 추천받기 ▾</div>
+
+    <div class="personal-panel" id="personalPanel" style="display:none;">
+      <div class="personal-row">
+        <label>키</label>
+        <input type="number" id="userHeight" class="mono" placeholder="165" min="120" max="220">
+        <span class="unit-label">cm</span>
+      </div>
+
+      <div class="personal-row">
+        <label>보폭</label>
+        <input type="number" id="userStride" class="mono" placeholder="70" min="30" max="200" disabled>
+        <span class="unit-label">cm</span>
+        <label class="checkbox-label">
+          <input type="checkbox" id="strideUnknown" checked>
+          모르겠음 (키·숙련도로 추정)
+        </label>
+      </div>
+
+      <div class="personal-row">
+        <label>숙련도</label>
+        <select id="userSkill" class="mono">
+          <option value="beginner">입문</option>
+          <option value="novice">초급</option>
+          <option value="intermediate" selected>중급</option>
+          <option value="advanced">상급</option>
+          <option value="expert">고급</option>
+        </select>
+      </div>
+      <div class="skill-desc" id="skillDesc"></div>
+    </div>
+  </div>
+
+  <div class="upload-zone" id="uploadZone">
+    + 오디오 파일 추가 (mp3, wav, m4a…) — BPM은 자동으로 감지돼요
+    <input type="file" id="fileInput" accept="audio/*" multiple>
+  </div>
+
+  <div class="player-bar" id="playerBar" style="display:none;">
+    <div class="player-track-name" id="playerTrackName">재생할 곡을 선택하세요</div>
+    <div class="player-controls">
+      <button class="ctrl-btn" id="shuffleBtn" title="셔플">🔀</button>
+      <button class="ctrl-btn" id="prevBtn" title="이전곡">⏮</button>
+      <button class="ctrl-btn ctrl-btn-main" id="playPauseBtn" title="재생/일시정지">▶</button>
+      <button class="ctrl-btn" id="stopBtn" title="정지">⏹</button>
+      <button class="ctrl-btn" id="nextBtn" title="다음곡">⏭</button>
+      <button class="ctrl-btn" id="repeatBtn" title="반복">🔁</button>
+    </div>
+  </div>
+
+  <div class="status-panel" id="statusPanel">
+    <div class="status-main">
+      <span class="status-label">템포</span>
+      <button class="status-btn" id="bpmDown">−</button>
+      <input type="number" class="status-value mono" id="targetBpm" value="120" min="20" max="300">
+      <span class="status-unit">BPM</span>
+      <button class="status-btn" id="bpmUp">+</button>
+    </div>
+    <span class="status-auto-badge" id="autoBadge">자동 조절 중</span>
+    <button class="metronome-toggle compact" id="metronomeToggle">🔕 메트로놈</button>
+  </div>
+
+  <div class="track-list" id="trackList"></div>
+  <div class="empty" id="emptyMsg">아직 추가된 곡이 없어요</div>
+
+  <p class="hint">곡을 추가하면 바로 재생할 수 있어요. 원곡 템포는 자동으로 분석돼서 목표 BPM에 맞게 속도가 계산되고, 음정은 그대로 유지됩니다.</p>
+</div>
+
+<script>
+(function() {
+  const trackListEl = document.getElementById('trackList');
+  const emptyMsg = document.getElementById('emptyMsg');
+  const targetBpmInput = document.getElementById('targetBpm');
+  const autoBadge = document.getElementById('autoBadge');
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const playerBar = document.getElementById('playerBar');
+  const playerTrackName = document.getElementById('playerTrackName');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const shuffleBtnEl = document.getElementById('shuffleBtn');
+  const repeatBtnEl = document.getElementById('repeatBtn');
+  const metronomeToggle = document.getElementById('metronomeToggle');
+
+  let metronomeCtx = null;
+  let metronomeOn = false;
+  let metronomeNextNoteTime = 0;
+  let metronomeTimerId = null;
+  const METRONOME_SCHEDULE_AHEAD = 0.1; // 초
+  const METRONOME_LOOKAHEAD_MS = 25;
+
+  let tracks = []; // {id, name, url, audio, bpm, status: 'detecting'|'ready'|'failed'}
+  let currentTrackId = null;
+  let repeatMode = 'off'; // 'off' | 'all' | 'one'
+  let shuffleOn = false;
+  let playSequence = []; // 재생 순서 (트랙 id 배열)
+  const paceSpeedInput = document.getElementById('paceSpeed');
+  const paceResultEl = document.getElementById('paceResult');
+  const personalToggle = document.getElementById('personalToggle');
+  const personalPanel = document.getElementById('personalPanel');
+  const userHeightInput = document.getElementById('userHeight');
+  const userStrideInput = document.getElementById('userStride');
+  const strideUnknownCheckbox = document.getElementById('strideUnknown');
+  const userSkillSelect = document.getElementById('userSkill');
+  const skillDescEl = document.getElementById('skillDesc');
+
+  personalToggle.addEventListener('click', () => {
+    const isOpen = personalPanel.style.display !== 'none';
+    personalPanel.style.display = isOpen ? 'none' : 'flex';
+    personalToggle.textContent = '개인 설정으로 더 정확하게 추천받기 ' + (isOpen ? '▾' : '▴');
+  });
+
+  // 첨부 이미지(여자 5K 페이스별 수준표)의 12단계를 5단계로 병합한 기준
+  const SKILL_INFO = {
+    beginner:     { label: '입문',  paceDesc: '8:30/km 이상',       strideFactor: 1.05 },
+    novice:       { label: '초급',  paceDesc: '7:30~8:29/km',       strideFactor: 1.02 },
+    intermediate: { label: '중급',  paceDesc: '6:30~7:29/km',       strideFactor: 1.00 },
+    advanced:     { label: '상급',  paceDesc: '5:30~6:29/km',       strideFactor: 0.97 },
+    expert:       { label: '고급',  paceDesc: '5:30/km 미만',        strideFactor: 0.94 },
+  };
+
+  function renderSkillDesc() {
+    const info = SKILL_INFO[userSkillSelect.value];
+    skillDescEl.textContent = `${info.label} 기준 페이스: ${info.paceDesc} (5K 완주 기준, 여성 평균 가이드 참고)`;
+  }
+  renderSkillDesc();
+  userSkillSelect.addEventListener('change', () => {
+    renderSkillDesc();
+    savePersonalSettings();
+    triggerPaceUpdate();
+  });
+
+  strideUnknownCheckbox.addEventListener('change', () => {
+    userStrideInput.disabled = strideUnknownCheckbox.checked;
+    if (strideUnknownCheckbox.checked) userStrideInput.value = '';
+    savePersonalSettings();
+    triggerPaceUpdate();
+  });
+  userStrideInput.addEventListener('input', () => { savePersonalSettings(); triggerPaceUpdate(); });
+  userHeightInput.addEventListener('input', () => { savePersonalSettings(); triggerPaceUpdate(); });
+
+  function triggerPaceUpdate() {
+    paceSpeedInput.dispatchEvent(new Event('input'));
+  }
+
+  // ---------- 개인 설정 저장/불러오기 (이 브라우저에만 저장돼요) ----------
+  const PERSONAL_SETTINGS_KEY = 'tempoMatch.personalSettings';
+
+  function savePersonalSettings() {
+    try {
+      localStorage.setItem(PERSONAL_SETTINGS_KEY, JSON.stringify({
+        height: userHeightInput.value,
+        strideUnknown: strideUnknownCheckbox.checked,
+        stride: userStrideInput.value,
+        skill: userSkillSelect.value,
+      }));
+    } catch (e) { /* 저장 불가 환경이면 조용히 무시 */ }
+  }
+
+  function loadPersonalSettings() {
+    try {
+      const raw = localStorage.getItem(PERSONAL_SETTINGS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.height) userHeightInput.value = data.height;
+      if (typeof data.strideUnknown === 'boolean') {
+        strideUnknownCheckbox.checked = data.strideUnknown;
+        userStrideInput.disabled = data.strideUnknown;
+      }
+      if (data.stride) userStrideInput.value = data.stride;
+      if (data.skill) userSkillSelect.value = data.skill;
+      renderSkillDesc();
+
+      const hasSavedValues = data.height || data.stride || (data.skill && data.skill !== 'intermediate');
+      if (hasSavedValues) {
+        personalPanel.style.display = 'flex';
+        personalToggle.textContent = '개인 설정으로 더 정확하게 추천받기 ▴';
+      }
+    } catch (e) { /* 저장된 값이 없거나 읽기 실패하면 기본값으로 진행 */ }
+  }
+  loadPersonalSettings();
+
+  // ---------- 목표 BPM ----------
+  function getTargetBpm() {
+    return parseFloat(targetBpmInput.value) || 120;
+  }
+
+  function syncTargetControls(val) {
+    val = Math.round(val);
+    targetBpmInput.value = val;
+    updateAllRates();
+  }
+
+  document.getElementById('bpmDown').addEventListener('click', () => {
+    syncTargetControls(Math.max(20, getTargetBpm() - 1));
+  });
+  document.getElementById('bpmUp').addEventListener('click', () => {
+    syncTargetControls(Math.min(300, getTargetBpm() + 1));
+  });
+  targetBpmInput.addEventListener('input', () => {
+    syncTargetControls(getTargetBpm());
+  });
+
+  // ---------- 메트로놈 ----------
+  function scheduleMetronomeClick(time) {
+    const osc = metronomeCtx.createOscillator();
+    const gain = metronomeCtx.createGain();
+    osc.frequency.value = 1000;
+    osc.connect(gain);
+    gain.connect(metronomeCtx.destination);
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.exponentialRampToValueAtTime(0.5, time + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    osc.start(time);
+    osc.stop(time + 0.06);
+  }
+
+  function metronomeSchedulerLoop() {
+    while (metronomeNextNoteTime < metronomeCtx.currentTime + METRONOME_SCHEDULE_AHEAD) {
+      scheduleMetronomeClick(metronomeNextNoteTime);
+      const interval = 60 / getTargetBpm();
+      metronomeNextNoteTime += interval;
+    }
+  }
+
+  function startMetronome() {
+    if (!metronomeCtx) {
+      metronomeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (metronomeCtx.state === 'suspended') metronomeCtx.resume();
+    metronomeNextNoteTime = metronomeCtx.currentTime + 0.05;
+    metronomeTimerId = setInterval(metronomeSchedulerLoop, METRONOME_LOOKAHEAD_MS);
+  }
+
+  function stopMetronome() {
+    if (metronomeTimerId) clearInterval(metronomeTimerId);
+    metronomeTimerId = null;
+  }
+
+  metronomeToggle.addEventListener('click', () => {
+    metronomeOn = !metronomeOn;
+    metronomeToggle.classList.toggle('active', metronomeOn);
+    metronomeToggle.textContent = metronomeOn ? '🔔 메트로놈' : '🔕 메트로놈';
+    if (metronomeOn) {
+      startMetronome();
+      const current = getCurrentTrack();
+      if (current && !current.audio.paused) syncMetronomeToTrack(current);
+    } else {
+      stopMetronome();
+    }
+  });
+
+  // 재생 중인 곡의 실제 비트 위치에 메트로놈 위상을 맞춘다
+  let lastMetronomeSync = 0;
+  function syncMetronomeToTrack(track) {
+    if (!metronomeOn || !track || track.status !== 'ready') return;
+    if (!metronomeCtx) {
+      metronomeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (metronomeCtx.state === 'suspended') metronomeCtx.resume();
+
+    const rate = track.audio.playbackRate || 1;
+    const beatIntervalMedia = 60 / (track.bpm || 120); // 원곡 기준(재생속도 적용 전) 비트 간격
+    const currentMediaTime = track.audio.currentTime;
+    const elapsed = currentMediaTime - (track.firstBeatSec || 0);
+    const beatsElapsed = Math.ceil(elapsed / beatIntervalMedia);
+    const nextBeatMediaTime = (track.firstBeatSec || 0) + beatsElapsed * beatIntervalMedia;
+    const mediaTimeUntilNextBeat = Math.max(0, nextBeatMediaTime - currentMediaTime);
+    const realTimeUntilNextBeat = mediaTimeUntilNextBeat / rate; // 재생속도 반영한 실제 대기 시간
+
+    metronomeNextNoteTime = metronomeCtx.currentTime + realTimeUntilNextBeat;
+    lastMetronomeSync = performance.now();
+  }
+
+  // 재생 중 8초마다 한 번씩 위상을 재보정해 미세한 오차 누적을 막는다
+  function maybeResyncMetronome(track) {
+    if (!metronomeOn) return;
+    if (currentTrackId !== track.id || track.audio.paused) return;
+    if (performance.now() - lastMetronomeSync > 8000) {
+      syncMetronomeToTrack(track);
+    }
+  }
+
+  // ---------- 달리기 속도 → BPM 추천 ----------
+  // 일반적인 러닝 케이던스(걸음/분) 가이드를 기반으로 한 대략적인 보간 테이블
+  const PACE_TABLE = [
+    { speed: 3,  bpm: 115 },
+    { speed: 4,  bpm: 122 },
+    { speed: 5,  bpm: 130 },
+    { speed: 6,  bpm: 140 },
+    { speed: 7,  bpm: 148 },
+    { speed: 8,  bpm: 155 },
+    { speed: 9,  bpm: 160 },
+    { speed: 10, bpm: 165 },
+    { speed: 11, bpm: 170 },
+    { speed: 12, bpm: 174 },
+    { speed: 14, bpm: 179 },
+    { speed: 16, bpm: 183 },
+    { speed: 18, bpm: 187 },
+    { speed: 20, bpm: 190 },
+  ];
+
+  // 기준선: 키 165cm · 중급 숙련도 러너 기준 케이던스 (PACE_TABLE 보간)
+  function baselineBpm(speed) {
+    if (speed <= PACE_TABLE[0].speed) return PACE_TABLE[0].bpm;
+    const last = PACE_TABLE[PACE_TABLE.length - 1];
+    if (speed >= last.speed) return last.bpm;
+    for (let i = 0; i < PACE_TABLE.length - 1; i++) {
+      const a = PACE_TABLE[i], b = PACE_TABLE[i+1];
+      if (speed >= a.speed && speed <= b.speed) {
+        const t = (speed - a.speed) / (b.speed - a.speed);
+        return Math.round(a.bpm + t * (b.bpm - a.bpm));
+      }
+    }
+    return 150;
+  }
+
+  const REFERENCE_HEIGHT_CM = 165;
+
+  function speedToBpm(speed) {
+    const strideCm = parseFloat(userStrideInput.value);
+    const hasStride = !strideUnknownCheckbox.checked && strideCm > 0;
+
+    if (hasStride) {
+      // 보폭이 있으면 근사 없이 물리 공식 그대로 계산: 케이던스 = 속도 ÷ 보폭
+      const speedMPerMin = speed * 1000 / 60;
+      const strideM = strideCm / 100;
+      return Math.round(speedMPerMin / strideM);
+    }
+
+    // 보폭을 모르면 키·숙련도로 보정한 추정치 사용
+    const heightCm = parseFloat(userHeightInput.value) || REFERENCE_HEIGHT_CM;
+    const skill = SKILL_INFO[userSkillSelect.value];
+    const heightCorrection = REFERENCE_HEIGHT_CM / heightCm; // 키가 클수록 보폭↑ → 케이던스↓
+    const skillCorrection = 1 / skill.strideFactor;          // 숙련도가 높을수록 보폭↓(빠른 스텝) → 케이던스↑
+
+    return Math.round(baselineBpm(speed) * heightCorrection * skillCorrection);
+  }
+
+  paceSpeedInput.addEventListener('input', () => {
+    const speed = parseFloat(paceSpeedInput.value);
+    if (!speed || speed <= 0) {
+      paceResultEl.textContent = '—';
+      return;
+    }
+    const bpm = speedToBpm(speed);
+    paceResultEl.textContent = bpm;
+    syncTargetControls(bpm);
+  });
+
+  // ---------- 인터벌 프로그램 ----------
+  const phaseListEl = document.getElementById('phaseList');
+  const addPhaseBtn = document.getElementById('addPhaseBtn');
+  const startProgramBtn = document.getElementById('startProgramBtn');
+  const stopProgramBtn = document.getElementById('stopProgramBtn');
+  const intervalStatusEl = document.getElementById('intervalStatus');
+  const statusPhaseLabelEl = document.getElementById('statusPhaseLabel');
+  const statusTimeLeftEl = document.getElementById('statusTimeLeft');
+  const intervalProgressFillEl = document.getElementById('intervalProgressFill');
+
+  const PHASE_PRESETS = {
+    slow:     { label: '천천히',   speed: 4 },
+    walk:     { label: '걷기',     speed: 5 },
+    run:      { label: '달리기',   speed: 9 },
+    fastwalk: { label: '빠른걷기', speed: 6.5 },
+    custom:   { label: '',        speed: 7 },
+  };
+
+  let phases = [];
+  let phaseIdCounter = 0;
+  let programState = null; // {phaseIndex, phaseElapsedSec, timerId}
+  let rampAnimFrame = null;
+
+  function addPhase(presetKey, overrides) {
+    const preset = PHASE_PRESETS[presetKey] || PHASE_PRESETS.slow;
+    const phase = {
+      id: 'phase_' + (phaseIdCounter++),
+      preset: presetKey,
+      customLabel: '',
+      minutes: 10,
+      speed: preset.speed,
+    };
+    if (overrides) Object.assign(phase, overrides);
+    phases.push(phase);
+    renderPhases();
+  }
+
+  function getPhaseLabel(phase) {
+    if (phase.preset === 'custom') return phase.customLabel || '커스텀';
+    return PHASE_PRESETS[phase.preset].label;
+  }
+
+  function renderPhases() {
+    phaseListEl.innerHTML = '';
+    phases.forEach(phase => {
+      const row = document.createElement('div');
+      row.className = 'phase-row';
+      const presetOptions = Object.keys(PHASE_PRESETS).map(key => {
+        const lbl = key === 'custom' ? '커스텀' : PHASE_PRESETS[key].label;
+        return `<option value="${key}" ${phase.preset === key ? 'selected' : ''}>${lbl}</option>`;
+      }).join('');
+
+      row.innerHTML = `
+        <select class="phase-preset mono">${presetOptions}</select>
+        <input type="text" class="phase-custom-label mono" placeholder="이름"
+          value="${escapeHtml(phase.customLabel)}"
+          style="${phase.preset === 'custom' ? '' : 'display:none;'}">
+        <input type="number" class="phase-duration mono" min="1" max="180" value="${phase.minutes}">
+        <span class="unit-label">분</span>
+        <input type="number" class="phase-speed mono" min="1" max="25" step="0.1" value="${phase.speed}">
+        <span class="unit-label">km/h</span>
+        <button class="phase-remove">✕</button>
+      `;
+
+      row.querySelector('.phase-preset').addEventListener('change', (e) => {
+        const key = e.target.value;
+        phase.preset = key;
+        phase.speed = PHASE_PRESETS[key].speed;
+        renderPhases();
+      });
+      row.querySelector('.phase-custom-label').addEventListener('input', (e) => {
+        phase.customLabel = e.target.value;
+      });
+      row.querySelector('.phase-duration').addEventListener('input', (e) => {
+        const v = parseFloat(e.target.value);
+        if (v > 0) phase.minutes = v;
+      });
+      row.querySelector('.phase-speed').addEventListener('input', (e) => {
+        const v = parseFloat(e.target.value);
+        if (v > 0) phase.speed = v;
+      });
+      row.querySelector('.phase-remove').addEventListener('click', () => {
+        phases = phases.filter(p => p.id !== phase.id);
+        renderPhases();
+      });
+
+      phaseListEl.appendChild(row);
+    });
+  }
+
+  addPhaseBtn.addEventListener('click', () => addPhase('slow'));
+
+  // 목표 BPM을 몇 초에 걸쳐 부드럽게 전환
+  function rampTargetBpmTo(newBpm, durationMs) {
+    if (rampAnimFrame) cancelAnimationFrame(rampAnimFrame);
+    const startBpm = getTargetBpm();
+    const startTime = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const value = startBpm + (newBpm - startBpm) * t;
+      syncTargetControls(Math.round(value));
+      if (t < 1) {
+        rampAnimFrame = requestAnimationFrame(step);
+      } else {
+        rampAnimFrame = null;
+      }
+    }
+    rampAnimFrame = requestAnimationFrame(step);
+  }
+
+  function enterPhase(idx) {
+    programState.phaseIndex = idx;
+    programState.phaseElapsedSec = 0;
+    const phase = phases[idx];
+    rampTargetBpmTo(speedToBpm(phase.speed), 4000);
+    renderProgramStatus();
+    updateMediaSession(getCurrentTrack());
+  }
+
+  function programTick() {
+    if (!programState) return;
+    programState.phaseElapsedSec++;
+    const phase = phases[programState.phaseIndex];
+    const durationSec = phase.minutes * 60;
+    if (programState.phaseElapsedSec >= durationSec) {
+      const nextIdx = programState.phaseIndex + 1;
+      if (nextIdx < phases.length) {
+        enterPhase(nextIdx);
+      } else {
+        stopProgram(true);
+      }
+    } else {
+      renderProgramStatus();
+    }
+  }
+
+  function renderProgramStatus() {
+    if (!programState) return;
+    const phase = phases[programState.phaseIndex];
+    const durationSec = phase.minutes * 60;
+    const remaining = Math.max(0, durationSec - programState.phaseElapsedSec);
+    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const ss = String(remaining % 60).padStart(2, '0');
+    statusPhaseLabelEl.textContent = `${getPhaseLabel(phase)} (${programState.phaseIndex + 1}/${phases.length})`;
+    statusTimeLeftEl.textContent = `${mm}:${ss}`;
+
+    const totalDurationSec = phases.reduce((sum, p) => sum + p.minutes * 60, 0);
+    const elapsedBeforeSec = phases.slice(0, programState.phaseIndex).reduce((sum, p) => sum + p.minutes * 60, 0);
+    const totalElapsedSec = elapsedBeforeSec + programState.phaseElapsedSec;
+    const pct = totalDurationSec > 0 ? (totalElapsedSec / totalDurationSec * 100) : 0;
+    intervalProgressFillEl.style.width = pct + '%';
+  }
+
+  function startProgram() {
+    if (phases.length === 0) return;
+    if (programState) stopProgram(false);
+    programState = { phaseIndex: -1, phaseElapsedSec: 0, timerId: null };
+    startProgramBtn.style.display = 'none';
+    stopProgramBtn.style.display = 'inline-flex';
+    intervalStatusEl.style.display = 'block';
+    autoBadge.classList.add('active');
+    enterPhase(0);
+    programState.timerId = setInterval(programTick, 1000);
+  }
+
+  function stopProgram(completed) {
+    if (programState && programState.timerId) clearInterval(programState.timerId);
+    programState = null;
+    startProgramBtn.style.display = 'inline-flex';
+    stopProgramBtn.style.display = 'none';
+    autoBadge.classList.remove('active');
+    if (completed) {
+      statusPhaseLabelEl.textContent = '프로그램 완료 🎉';
+      statusTimeLeftEl.textContent = '00:00';
+      intervalProgressFillEl.style.width = '100%';
+    } else {
+      intervalStatusEl.style.display = 'none';
+    }
+  }
+
+  startProgramBtn.addEventListener('click', startProgram);
+  stopProgramBtn.addEventListener('click', () => stopProgram(false));
+
+  // ---------- 저장된 프로그램 슬롯 (최대 3개, 이 브라우저에만 저장돼요) ----------
+  const PROGRAM_SLOTS_KEY = 'tempoMatch.programSlots';
+
+  function loadSlotsFromStorage() {
+    try {
+      const raw = localStorage.getItem(PROGRAM_SLOTS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveSlotsToStorage(slots) {
+    try { localStorage.setItem(PROGRAM_SLOTS_KEY, JSON.stringify(slots)); } catch (e) { /* 무시 */ }
+  }
+
+  function renderSlots() {
+    const slots = loadSlotsFromStorage();
+    [1, 2, 3].forEach(n => {
+      const el = document.getElementById('slotSummary' + n);
+      const data = slots[n];
+      if (data && data.phases && data.phases.length) {
+        const totalMin = data.phases.reduce((sum, p) => sum + p.minutes, 0);
+        el.textContent = `${data.phases.length}구간 · 총 ${totalMin}분`;
+      } else {
+        el.textContent = '비어있음';
+      }
+    });
+  }
+
+  document.querySelectorAll('.slot-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const slot = btn.dataset.slot;
+      const action = btn.dataset.action;
+      const slots = loadSlotsFromStorage();
+
+      if (action === 'save') {
+        slots[slot] = {
+          phases: phases.map(p => ({
+            preset: p.preset, customLabel: p.customLabel, minutes: p.minutes, speed: p.speed,
+          })),
+        };
+        saveSlotsToStorage(slots);
+        renderSlots();
+      } else if (action === 'load') {
+        const data = slots[slot];
+        if (!data || !data.phases || !data.phases.length) return;
+        phases = data.phases.map(p => ({ id: 'phase_' + (phaseIdCounter++), ...p }));
+        renderPhases();
+      }
+    });
+  });
+
+  renderSlots();
+
+  // 초기 예시 구간 (10분 천천히 → 20분 달리기 → 10분 빠른걷기 → 10분 천천히)
+  addPhase('slow', { minutes: 10 });
+  addPhase('run', { minutes: 20 });
+  addPhase('fastwalk', { minutes: 10 });
+  addPhase('slow', { minutes: 10 });
+
+  // ---------- 업로드 ----------
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  function attachTrackAudioEvents(track) {
+    const audio = track.audio;
+    audio.addEventListener('timeupdate', () => {
+      updateProgress(track);
+      maybeResyncMetronome(track);
+    });
+    audio.addEventListener('ended', () => {
+      if (repeatMode === 'one') {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        goNext(false);
+      }
+    });
+    audio.addEventListener('play', () => {
+      currentTrackId = track.id;
+      syncMetronomeToTrack(track);
+      updateMediaSession(track);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+      render();
+    });
+    audio.addEventListener('pause', () => {
+      if ('mediaSession' in navigator && currentTrackId === track.id) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+      render();
+    });
+  }
+
+  function genTrackId() {
+    return 'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function handleFiles(fileList) {
+    Array.from(fileList).forEach(file => {
+      const id = genTrackId();
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+      audio.preservesPitch = true;
+      audio.webkitPreservesPitch = true;
+      audio.mozPreservesPitch = true;
+
+      const track = { id, name: file.name, url, audio, bpm: 120, firstBeatSec: 0, status: 'detecting' };
+      tracks.push(track);
+      attachTrackAudioEvents(track);
+
+      const addedAt = Date.now();
+      dbSaveTrack({ id, name: track.name, bpm: track.bpm, firstBeatSec: track.firstBeatSec, fileBlob: file, addedAt });
+
+      detectBPM(file).then(result => {
+        track.bpm = (result && result.bpm) || 120;
+        track.firstBeatSec = (result && result.firstBeatSec) || 0;
+        track.status = result ? 'ready' : 'failed';
+        applyRate(track);
+        if (currentTrackId === track.id && metronomeOn) syncMetronomeToTrack(track);
+        dbSaveTrack({ id, name: track.name, bpm: track.bpm, firstBeatSec: track.firstBeatSec, fileBlob: file, addedAt });
+      }).catch(() => {
+        track.status = 'failed';
+      });
+    });
+    rebuildSequence(true);
+    render();
+  }
+
+  // ---------- 곡 목록 영구 저장 (IndexedDB — 파일 자체를 이 브라우저에 저장) ----------
+  const TRACKS_DB_NAME = 'tempoMatchTracksDB';
+  const TRACKS_DB_VERSION = 1;
+  const TRACKS_STORE = 'tracks';
+  let tracksDbPromise = null;
+
+  function openTracksDB() {
+    if (tracksDbPromise) return tracksDbPromise;
+    tracksDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(TRACKS_DB_NAME, TRACKS_DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(TRACKS_STORE)) {
+          db.createObjectStore(TRACKS_STORE, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+    return tracksDbPromise;
+  }
+
+  async function dbSaveTrack(record) {
+    try {
+      const db = await openTracksDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(TRACKS_STORE, 'readwrite');
+        tx.objectStore(TRACKS_STORE).put(record);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      // 저장 실패해도 이번 세션 재생엔 지장 없음 (다음 새로고침 때 사라질 뿐)
+    }
+  }
+
+  async function dbDeleteTrack(id) {
+    try {
+      const db = await openTracksDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(TRACKS_STORE, 'readwrite');
+        tx.objectStore(TRACKS_STORE).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) { /* 무시 */ }
+  }
+
+  async function dbLoadAllTracks() {
+    try {
+      const db = await openTracksDB();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(TRACKS_STORE, 'readonly');
+        const req = tx.objectStore(TRACKS_STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function loadTracksFromDB() {
+    const records = await dbLoadAllTracks();
+    records.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    records.forEach(record => {
+      if (!record.fileBlob) return;
+      const url = URL.createObjectURL(record.fileBlob);
+      const audio = new Audio(url);
+      audio.preservesPitch = true;
+      audio.webkitPreservesPitch = true;
+      audio.mozPreservesPitch = true;
+
+      const track = {
+        id: record.id,
+        name: record.name,
+        url,
+        audio,
+        bpm: record.bpm || 120,
+        firstBeatSec: record.firstBeatSec || 0,
+        status: 'ready', // 이전에 이미 분석해둔 값을 그대로 사용, 재분석 안 함
+      };
+      tracks.push(track);
+      attachTrackAudioEvents(track);
+    });
+    rebuildSequence(true);
+  }
+
+
+  // ---------- BPM 자동 감지 ----------
+  async function detectBPM(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let audioBuffer;
+    try {
+      audioBuffer = await tempCtx.decodeAudioData(arrayBuffer);
+    } finally {
+      tempCtx.close();
+    }
+
+    const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(
+      1, audioBuffer.length, audioBuffer.sampleRate
+    );
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    const filter = offlineCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 150;
+    source.connect(filter);
+    filter.connect(offlineCtx.destination);
+    source.start(0);
+
+    const rendered = await offlineCtx.startRendering();
+    const data = rendered.getChannelData(0);
+    const sampleRate = rendered.sampleRate;
+
+    // 피크(온셋) 검출: 최소 간격 0.25초(=240bpm 상한) 유지
+    let maxAmp = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i]);
+      if (v > maxAmp) maxAmp = v;
+    }
+    if (maxAmp === 0) return null;
+
+    const threshold = maxAmp * 0.35;
+    const minGapSamples = Math.floor(sampleRate * 0.25);
+    const peaks = [];
+    let i = 0;
+    while (i < data.length) {
+      if (Math.abs(data[i]) > threshold) {
+        peaks.push(i);
+        i += minGapSamples;
+      } else {
+        i++;
+      }
+    }
+    if (peaks.length < 4) return null;
+
+    // 인접 피크 간격을 BPM으로 변환해 히스토그램 생성 (60~180 범위로 접기)
+    const bpmCounts = {};
+    for (let a = 0; a < peaks.length; a++) {
+      for (let b = a + 1; b < Math.min(a + 9, peaks.length); b++) {
+        let intervalSec = (peaks[b] - peaks[a]) / sampleRate;
+        if (intervalSec <= 0) continue;
+        let bpm = 60 / intervalSec;
+        while (bpm < 60) bpm *= 2;
+        while (bpm > 180) bpm /= 2;
+        const bucket = Math.round(bpm);
+        bpmCounts[bucket] = (bpmCounts[bucket] || 0) + 1;
+      }
+    }
+
+    let bestBpm = null, bestCount = 0;
+    for (const key in bpmCounts) {
+      if (bpmCounts[key] > bestCount) {
+        bestCount = bpmCounts[key];
+        bestBpm = parseInt(key, 10);
+      }
+    }
+    if (!bestBpm) return null;
+    return { bpm: bestBpm, firstBeatSec: peaks[0] / sampleRate };
+  }
+
+  // ---------- 재생/속도 로직 ----------
+  function updateAllRates() {
+    tracks.forEach(t => applyRate(t));
+    render();
+  }
+
+  function applyRate(track) {
+    const target = getTargetBpm();
+    const rate = target / (track.bpm || 120);
+    const clamped = Math.min(4, Math.max(0.25, rate));
+    track.audio.playbackRate = clamped;
+    return clamped;
+  }
+
+  function getCurrentTrack() {
+    return tracks.find(t => t.id === currentTrackId) || null;
+  }
+
+  // ---------- 잠금화면 / 제어센터 연동 (Media Session API) ----------
+  function updateMediaSession(track) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track ? track.name.replace(/\.[^/.]+$/, '') : '템포 매치',
+        artist: programState ? `인터벌 진행 중 · ${getTargetBpm()} BPM` : `${getTargetBpm()} BPM`,
+        album: '템포 매치',
+      });
+    } catch (e) { /* 메타데이터 설정 실패는 무시 */ }
+  }
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+    navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+    navigator.mediaSession.setActionHandler('previoustrack', () => goPrev());
+    navigator.mediaSession.setActionHandler('nexttrack', () => goNext(true));
+    navigator.mediaSession.setActionHandler('stop', () => stopPlayback());
+  }
+
+  function rebuildSequence(preserveCurrent) {
+    const ids = tracks.map(t => t.id);
+    if (shuffleOn) {
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+      if (preserveCurrent && currentTrackId) {
+        const pos = ids.indexOf(currentTrackId);
+        if (pos > -1) {
+          ids.splice(pos, 1);
+          ids.unshift(currentTrackId);
+        }
+      }
+    }
+    playSequence = ids;
+  }
+
+  function playById(id) {
+    const track = tracks.find(t => t.id === id);
+    if (!track) return;
+    const prev = getCurrentTrack();
+    if (prev && prev.id !== id) prev.audio.pause();
+    currentTrackId = id;
+    applyRate(track);
+    track.audio.play();
+  }
+
+  function togglePlayPause() {
+    const track = getCurrentTrack();
+    if (!track) {
+      if (tracks.length === 0) return;
+      if (playSequence.length === 0) rebuildSequence(false);
+      playById(playSequence[0]);
+      return;
+    }
+    if (track.audio.paused) {
+      applyRate(track);
+      track.audio.play();
+    } else {
+      track.audio.pause();
+    }
+  }
+
+  function stopPlayback() {
+    const track = getCurrentTrack();
+    if (track) {
+      track.audio.pause();
+      track.audio.currentTime = 0;
+    }
+    if (programState) {
+      stopProgram(false); // 음악을 멈추면 인터벌 프로그램도 함께 중단
+    }
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+    render();
+  }
+
+  function goNext(manual) {
+    if (tracks.length === 0) return;
+    if (playSequence.length === 0) rebuildSequence(false);
+    let pos = playSequence.indexOf(currentTrackId);
+    pos++;
+    if (pos >= playSequence.length) {
+      if (repeatMode === 'all') {
+        pos = 0;
+      } else {
+        if (!manual) stopPlayback();
+        return;
+      }
+    }
+    playById(playSequence[pos]);
+  }
+
+  function goPrev() {
+    if (tracks.length === 0) return;
+    if (playSequence.length === 0) rebuildSequence(false);
+    let pos = playSequence.indexOf(currentTrackId);
+    if (pos === -1) pos = 0;
+    pos--;
+    if (pos < 0) pos = repeatMode === 'all' ? playSequence.length - 1 : 0;
+    playById(playSequence[pos]);
+  }
+
+  document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
+  document.getElementById('stopBtn').addEventListener('click', stopPlayback);
+  document.getElementById('nextBtn').addEventListener('click', () => goNext(true));
+  document.getElementById('prevBtn').addEventListener('click', goPrev);
+  document.getElementById('shuffleBtn').addEventListener('click', () => {
+    shuffleOn = !shuffleOn;
+    rebuildSequence(true);
+    render();
+  });
+  document.getElementById('repeatBtn').addEventListener('click', () => {
+    repeatMode = repeatMode === 'off' ? 'all' : (repeatMode === 'all' ? 'one' : 'off');
+    render();
+  });
+
+  function updateProgress(track) {
+    const fill = document.querySelector(`[data-progress="${track.id}"]`);
+    if (fill && track.audio.duration) {
+      fill.style.width = (track.audio.currentTime / track.audio.duration * 100) + '%';
+    }
+  }
+
+  function removeTrack(id) {
+    const track = tracks.find(t => t.id === id);
+    if (track) {
+      track.audio.pause();
+      URL.revokeObjectURL(track.url);
+    }
+    tracks = tracks.filter(t => t.id !== id);
+    if (currentTrackId === id) currentTrackId = null;
+    dbDeleteTrack(id);
+    rebuildSequence(true);
+    render();
+  }
+
+  // ---------- 렌더링 ----------
+  function render() {
+    emptyMsg.style.display = tracks.length === 0 ? 'block' : 'none';
+
+    // 플레이어 바
+    const currentTrack = getCurrentTrack();
+    playerBar.style.display = tracks.length === 0 ? 'none' : 'flex';
+    playerTrackName.textContent = currentTrack ? currentTrack.name : '재생할 곡을 선택하세요';
+    const isCurrentPlaying = currentTrack && !currentTrack.audio.paused;
+    playPauseBtn.textContent = isCurrentPlaying ? '❚❚' : '▶';
+    shuffleBtnEl.classList.toggle('ctrl-active', shuffleOn);
+    repeatBtnEl.classList.toggle('ctrl-active', repeatMode !== 'off');
+    repeatBtnEl.textContent = repeatMode === 'one' ? '🔂' : '🔁';
+
+    trackListEl.innerHTML = '';
+    tracks.forEach(track => {
+      applyRate(track);
+      const isPlaying = currentTrackId === track.id && !track.audio.paused;
+
+      const el = document.createElement('div');
+      el.className = 'track' + (isPlaying ? ' playing' : '');
+
+      el.innerHTML = `
+        <div class="track-top">
+          <button class="track-play">${isPlaying ? '❚❚' : '▶'}</button>
+          <div class="track-name">${escapeHtml(track.name)}</div>
+          <button class="track-remove" title="삭제">✕</button>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill" data-progress="${track.id}"></div>
+          </div>
+        </div>
+      `;
+
+      el.querySelector('.track-play').addEventListener('click', () => {
+        if (isPlaying) {
+          track.audio.pause();
+        } else {
+          playById(track.id);
+        }
+      });
+      el.querySelector('.track-remove').addEventListener('click', () => removeTrack(track.id));
+
+      trackListEl.appendChild(el);
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  loadTracksFromDB().then(render).catch(render);
+})();
+</script>
+
+</body>
+</html>
